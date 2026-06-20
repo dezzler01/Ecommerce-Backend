@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="PicksAndMore.API/PicksAndMore.API.csproj" />
+  <Project Path="PicksAndMore.Application/PicksAndMore.Application.csproj" />
+  <Project Path="PicksAndMore.Domain/PicksAndMore.Domain.csproj" />
+  <Project Path="PicksAndMore.Infrastructure/PicksAndMore.Infrastructure.csproj" />
+</Solution>

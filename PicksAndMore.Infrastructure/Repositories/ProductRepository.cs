@@ -1,0 +1,136 @@
+using Microsoft.EntityFrameworkCore;
+using PicksAndMore.Application.Common;
+using PicksAndMore.Application.Interfaces;
+using PicksAndMore.Domain.Entities;
+using PicksAndMore.Infrastructure.Persistence;
+
+namespace PicksAndMore.Infrastructure.Repositories;
+
+public class ProductRepository : IProductRepository
+{
+    private readonly ApplicationDbContext _context;
+
+    public ProductRepository(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<Product?> GetByIdAsync(Guid id)
+    {
+        return await _context.Products
+            .Include(p => p.Category)
+            .Include(p => p.Brand)
+            .Include(p => p.Metadata)
+            .Include(p => p.Images)
+            .Include(p => p.Categories)
+            .FirstOrDefaultAsync(p => p.Id == id);
+    }
+
+    public async Task<PaginationResult<Product>> GetPagedProductsAsync(ProductQueryParameters queryParams)
+    {
+        var query = _context.Products
+            .Include(p => p.Category)
+            .Include(p => p.Brand)
+            .Include(p => p.Metadata)
+            .Include(p => p.Images)
+            .Include(p => p.Categories)
+            .AsQueryable();
+
+        // Brand filtering
+        if (queryParams.BrandId.HasValue)
+        {
+            query = query.Where(p => p.BrandId == queryParams.BrandId.Value);
+        }
+
+        // 1. Text filtering (case-insensitive Title / Description search)
+        if (!string.IsNullOrWhiteSpace(queryParams.TextTerm))
+        {
+            var term = queryParams.TextTerm.ToLower();
+            query = query.Where(p => 
+                p.Title.ToLower().Contains(term) || 
+                p.Description.ToLower().Contains(term));
+        }
+
+        // 2. Collection Type Filters & Sorts
+        if (!string.IsNullOrWhiteSpace(queryParams.CollectionType))
+        {
+            var collectionType = queryParams.CollectionType.ToLower().Trim();
+            if (collectionType == "latest")
+            {
+                query = query.OrderByDescending(p => p.CreatedAt);
+            }
+            else if (collectionType == "bestsellers")
+            {
+                query = query.OrderByDescending(p => _context.OrderItems
+                    .Where(oi => oi.ProductId == p.Id && oi.Order.OrderStatus == PicksAndMore.Domain.Enums.OrderStatus.Delivered)
+                    .Sum(oi => (int?)oi.Quantity) ?? 0)
+                    .ThenByDescending(p => p.CreatedAt);
+            }
+            else if (collectionType == "featured")
+            {
+                query = query.Where(p => _context.ProductReviews
+                    .Where(pr => pr.ProductId == p.Id)
+                    .Average(pr => (double?)pr.Rating) >= 4.5);
+            }
+            else if (collectionType == "on sale" || collectionType == "onsale")
+            {
+                query = query.Where(p => p.Price < p.CostPrice);
+            }
+        }
+        else
+        {
+            // Fallback to existing sorting logic if collection type not provided
+            if (!string.IsNullOrWhiteSpace(queryParams.SortBy))
+            {
+                var sortBy = queryParams.SortBy.ToLower();
+                if (sortBy == "price")
+                {
+                    query = queryParams.IsSortAscending 
+                        ? query.OrderBy(p => p.Price) 
+                        : query.OrderByDescending(p => p.Price);
+                }
+                else if (sortBy == "title")
+                {
+                    query = queryParams.IsSortAscending 
+                        ? query.OrderBy(p => p.Title) 
+                        : query.OrderByDescending(p => p.Title);
+                }
+                else
+                {
+                    query = query.OrderBy(p => p.Id);
+                }
+            }
+            else
+            {
+                query = query.OrderBy(p => p.Id);
+            }
+        }
+
+        // 3. Count Total Items before skipping
+        var totalCount = await query.CountAsync();
+
+        // 4. Pagination
+        var items = await query
+            .Skip((queryParams.Page - 1) * queryParams.PageSize)
+            .Take(queryParams.PageSize)
+            .ToListAsync();
+
+        return new PaginationResult<Product>(items, totalCount, queryParams.Page, queryParams.PageSize);
+    }
+
+    public async Task AddAsync(Product product)
+    {
+        await _context.Products.AddAsync(product);
+    }
+
+    public async Task BulkAddAsync(IEnumerable<Product> products)
+    {
+        await _context.Products.AddRangeAsync(products);
+    }
+
+    public Task DeleteAsync(Product product)
+    {
+        _context.Products.Remove(product);
+        return Task.CompletedTask;
+    }
+}
