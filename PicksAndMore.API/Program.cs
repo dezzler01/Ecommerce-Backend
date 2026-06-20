@@ -68,12 +68,19 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
 
-// Configure CORS for local Angular App (running on http://localhost:4200)
+// Configure CORS: whitelist local dev + production Vercel frontend URL from environment
+var allowedOrigins = new List<string> { "http://localhost:4200" };
+var vercelUrl = Environment.GetEnvironmentVariable("FRONTEND_URL");
+if (!string.IsNullOrEmpty(vercelUrl))
+{
+    allowedOrigins.Add(vercelUrl.TrimEnd('/'));
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
     {
-        policy.WithOrigins("http://localhost:4200")
+        policy.WithOrigins(allowedOrigins.ToArray())
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -195,7 +202,11 @@ if (app.Environment.IsDevelopment())
     }
 }
 
-app.UseHttpsRedirection();
+// Only enforce HTTPS redirect in non-containerized environments (Render handles TLS termination)
+if (!app.Environment.IsProduction())
+{
+    app.UseHttpsRedirection();
+}
 
 // Enable CORS mapping
 app.UseCors("AllowAngular");

@@ -16,9 +16,20 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         // 1. Register DbContext using Npgsql PostgreSQL provider
+        // Support Render.com DATABASE_URL environment variable (postgres:// format) or standard connection string
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+        if (!string.IsNullOrEmpty(databaseUrl))
+        {
+            // Parse Render.com postgres:// URL format into Npgsql connection string
+            var uri = new Uri(databaseUrl);
+            var userInfo = uri.UserInfo.Split(':');
+            connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
+        }
+
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseNpgsql(
-                configuration.GetConnectionString("DefaultConnection"),
+                connectionString,
                 b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)
             )
         );
