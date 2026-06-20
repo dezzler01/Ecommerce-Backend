@@ -70,10 +70,18 @@ builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
 
 // Configure CORS: whitelist local dev + production Vercel frontend URL from environment
 var allowedOrigins = new List<string> { "http://localhost:4200" };
-var vercelUrl = Environment.GetEnvironmentVariable("FRONTEND_URL");
+var vercelUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") ?? Environment.GetEnvironmentVariable("AllowedOrigins");
 if (!string.IsNullOrEmpty(vercelUrl))
 {
-    allowedOrigins.Add(vercelUrl.TrimEnd('/'));
+    var origins = vercelUrl.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+    foreach (var origin in origins)
+    {
+        var url = origin.Trim().Trim('\"').Trim('\'').TrimEnd('/');
+        if (!string.IsNullOrEmpty(url))
+        {
+            allowedOrigins.Add(url);
+        }
+    }
 }
 
 builder.Services.AddCors(options =>
