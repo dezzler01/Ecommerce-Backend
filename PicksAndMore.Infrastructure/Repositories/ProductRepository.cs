@@ -110,12 +110,15 @@ public class ProductRepository : IProductRepository
         var totalCount = await query.CountAsync();
 
         // 4. Pagination
+        var page = queryParams.Page <= 0 ? 1 : queryParams.Page;
+        var pageSize = queryParams.PageSize <= 0 ? 10 : Math.Min(queryParams.PageSize, 100);
+
         var items = await query
-            .Skip((queryParams.Page - 1) * queryParams.PageSize)
-            .Take(queryParams.PageSize)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
 
-        return new PaginationResult<Product>(items, totalCount, queryParams.Page, queryParams.PageSize);
+        return new PaginationResult<Product>(items, totalCount, page, pageSize);
     }
 
     public async Task AddAsync(Product product)
