@@ -216,6 +216,9 @@ if (!app.Environment.IsProduction())
     app.UseHttpsRedirection();
 }
 
+// Enable Static Files Serving
+app.UseStaticFiles();
+
 // Enable CORS mapping
 app.UseCors("AllowAngular");
 
