@@ -17,7 +17,7 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         _configuration = configuration;
     }
 
-    public string GenerateJwtToken(ApplicationUser user, List<string> permissions)
+    public string GenerateJwtToken(ApplicationUser user, string roleName, List<string> permissions)
     {
         var jwtSettings = _configuration.GetSection("Jwt");
         var keyString = jwtSettings["Key"] ?? "P!cK5&m0R3#Jwt@S3cR3t-F4llB4ck_K3y$2026!xQz9vWpLm7nRtYu";
@@ -28,6 +28,8 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.FullName),
             new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
+            new Claim(ClaimTypes.Role, roleName),
+            new Claim("role", roleName),
             new Claim("RoleId", user.RoleId.ToString())
         };
 

@@ -56,7 +56,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, ApiResponse<Aut
         // Query permissions mapped to this role
         var permissions = await _rolePermissionRepository.GetPermissionsByRoleIdAsync(user.RoleId);
 
-        var token = _jwtTokenGenerator.GenerateJwtToken(user, permissions);
+        var token = _jwtTokenGenerator.GenerateJwtToken(user, roleName, permissions);
 
         var responseDto = new AuthResponseDto(token, user.FullName, roleName);
         return ApiResponse<AuthResponseDto>.Success(responseDto, "Login successful.");

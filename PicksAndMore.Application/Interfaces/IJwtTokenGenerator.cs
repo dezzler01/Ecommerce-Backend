@@ -4,5 +4,5 @@ namespace PicksAndMore.Application.Interfaces;
 
 public interface IJwtTokenGenerator
 {
-    string GenerateJwtToken(ApplicationUser user, List<string> permissions);
+    string GenerateJwtToken(ApplicationUser user, string roleName, List<string> permissions);
 }
