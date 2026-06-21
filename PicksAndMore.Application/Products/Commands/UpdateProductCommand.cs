@@ -61,6 +61,7 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
             product.ImageUrl = dto.ImageUrl;
             product.Age = dto.Age;
             product.BrandId = dto.BrandId;
+            product.CollectionType = dto.CollectionType;
 
             // Update categories (many-to-many)
             if (dto.CategoryIds != null)

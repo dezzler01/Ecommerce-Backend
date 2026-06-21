@@ -134,6 +134,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Role, Gui
             entity.Property(p => p.ScheduledPublishDate);
             entity.Property(p => p.ShippingSize).HasConversion<string>().HasMaxLength(50);
             entity.Property(p => p.ImageUrl).HasMaxLength(500);
+            entity.Property(p => p.CollectionType).HasMaxLength(100);
 
             entity.HasOne(p => p.Category)
                   .WithMany(c => c.Products)

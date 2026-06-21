@@ -13,6 +13,19 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Ensure wwwroot and wwwroot/uploads folders exist so UseStaticFiles initializes correctly
+var webRootPath = Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
+if (!Directory.Exists(webRootPath))
+{
+    Directory.CreateDirectory(webRootPath);
+}
+var uploadsPath = Path.Combine(webRootPath, "uploads");
+if (!Directory.Exists(uploadsPath))
+{
+    Directory.CreateDirectory(uploadsPath);
+}
+builder.Environment.WebRootPath = webRootPath;
+
 // Add controller endpoints support
 builder.Services.AddControllers();
 

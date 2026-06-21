@@ -16,6 +16,8 @@ public class Product : BaseAuditableEntity
     public ShippingSize ShippingSize { get; set; }
     public string? ImageUrl { get; set; }
     public string? Age { get; set; }
+    public string? CollectionType { get; set; }
+    
     
     // Brand relationship
     public Guid? BrandId { get; set; }

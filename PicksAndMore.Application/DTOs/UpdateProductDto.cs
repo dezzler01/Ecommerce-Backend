@@ -14,6 +14,7 @@ public class UpdateProductDto
     public string? ImageUrl { get; set; }
     public List<ProductImageDto>? ImageUrls { get; set; }
     public string? Age { get; set; }
+    public string? CollectionType { get; set; }
     public List<Guid>? CategoryIds { get; set; }
     public Guid? BrandId { get; set; }
 

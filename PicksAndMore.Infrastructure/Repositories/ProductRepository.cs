@@ -57,24 +57,38 @@ public class ProductRepository : IProductRepository
             var collectionType = queryParams.CollectionType.ToLower().Trim();
             if (collectionType == "latest")
             {
-                query = query.OrderByDescending(p => p.CreatedAt);
+                query = query.Where(p => p.CollectionType == "Latest" || string.IsNullOrEmpty(p.CollectionType))
+                             .OrderByDescending(p => p.CollectionType == "Latest" ? 1 : 0)
+                             .ThenByDescending(p => p.CreatedAt);
             }
             else if (collectionType == "bestsellers")
             {
-                query = query.OrderByDescending(p => _context.OrderItems
-                    .Where(oi => oi.ProductId == p.Id && oi.Order.OrderStatus == PicksAndMore.Domain.Enums.OrderStatus.Delivered)
-                    .Sum(oi => (int?)oi.Quantity) ?? 0)
-                    .ThenByDescending(p => p.CreatedAt);
+                query = query.Where(p => p.CollectionType == "Bestsellers" || 
+                                         (string.IsNullOrEmpty(p.CollectionType) && _context.OrderItems
+                                             .Any(oi => oi.ProductId == p.Id && oi.Order.OrderStatus == PicksAndMore.Domain.Enums.OrderStatus.Delivered)))
+                             .OrderByDescending(p => p.CollectionType == "Bestsellers" ? 1 : 0)
+                             .ThenByDescending(p => _context.OrderItems
+                                 .Where(oi => oi.ProductId == p.Id && oi.Order.OrderStatus == PicksAndMore.Domain.Enums.OrderStatus.Delivered)
+                                 .Sum(oi => (int?)oi.Quantity) ?? 0)
+                             .ThenByDescending(p => p.CreatedAt);
             }
             else if (collectionType == "featured")
             {
-                query = query.Where(p => _context.ProductReviews
-                    .Where(pr => pr.ProductId == p.Id)
-                    .Average(pr => (double?)pr.Rating) >= 4.5);
+                query = query.Where(p => p.CollectionType == "Featured" || 
+                                         (string.IsNullOrEmpty(p.CollectionType) && _context.ProductReviews
+                                             .Where(pr => pr.ProductId == p.Id)
+                                             .Average(pr => (double?)pr.Rating) >= 4.5))
+                             .OrderByDescending(p => p.CollectionType == "Featured" ? 1 : 0)
+                             .ThenByDescending(p => _context.ProductReviews
+                                 .Where(pr => pr.ProductId == p.Id)
+                                 .Average(pr => (double?)pr.Rating) ?? 0);
             }
             else if (collectionType == "on sale" || collectionType == "onsale")
             {
-                query = query.Where(p => p.Price < p.CostPrice);
+                query = query.Where(p => p.CollectionType == "On Sale" || 
+                                         (string.IsNullOrEmpty(p.CollectionType) && p.Price < p.CostPrice))
+                             .OrderByDescending(p => p.CollectionType == "On Sale" ? 1 : 0)
+                             .ThenByDescending(p => p.CostPrice - p.Price);
             }
         }
         else

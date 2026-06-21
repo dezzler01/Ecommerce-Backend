@@ -39,6 +39,7 @@ public static class MappingExtensions
             ImageUrl = sortedImages.FirstOrDefault()?.Url ?? product.ImageUrl,
             ImageUrls = sortedImages,
             Age = product.Age,
+            CollectionType = product.CollectionType,
             Categories = (product.Categories ?? new()).Select(c => c.ToDto()).ToList(),
             BrandId = product.BrandId,
             BrandName = product.Brand?.Name,

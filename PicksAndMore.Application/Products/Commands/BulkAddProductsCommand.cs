@@ -122,6 +122,7 @@ public class BulkAddProductsCommandHandler : IRequestHandler<BulkAddProductsComm
                 product.Age = dto.Age;
                 product.Categories = resolvedCategories;
                 product.BrandId = dto.BrandId;
+                product.CollectionType = dto.CollectionType;
 
                 // 4. Link ProductMetadata
                 product.Metadata = new ProductMetadata(

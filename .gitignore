@@ -29,3 +29,6 @@ bld/
 ## OS files
 .DS_Store
 Thumbs.db
+
+## User uploads
+wwwroot/uploads/

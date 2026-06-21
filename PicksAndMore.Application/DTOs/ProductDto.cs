@@ -21,6 +21,7 @@ public class ProductDto
     public string? ImageUrl { get; set; }
     public List<ProductImageDto> ImageUrls { get; set; } = new();
     public string? Age { get; set; }
+    public string? CollectionType { get; set; }
     public List<CategoryDto> Categories { get; set; } = new();
 
     public Guid? BrandId { get; set; }

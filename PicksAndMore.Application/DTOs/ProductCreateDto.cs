@@ -19,6 +19,7 @@ public class ProductCreateDto
     public string? ImageUrl { get; set; }
     public List<string>? ImageUrls { get; set; }
     public string? Age { get; set; }
+    public string? CollectionType { get; set; }
     public List<string>? SubCategories { get; set; }
     public Guid? BrandId { get; set; }
 
