@@ -151,7 +151,7 @@ public static class DatabaseSeeder
             categories[2].Id, // bags (Women)
             ShippingSize.Medium,
             "/products/handbag.png"
-        ) { Age = null, BrandId = brandGucciId };
+        ) { Age = null, BrandId = brandGucciId, CollectionType = "Bestsellers" };
         product1.Categories.Add(categories[2]); // bags
         product1.Categories.Add(categories[4]); // accessors
         seedProducts.Add(product1);
@@ -187,7 +187,7 @@ public static class DatabaseSeeder
             categories[0].Id, // fashion (Women)
             ShippingSize.Small,
             "/products/dress.png"
-        ) { Age = null, BrandId = brandChanelId };
+        ) { Age = null, BrandId = brandChanelId, CollectionType = "Latest" };
         product3.Categories.Add(categories[0]); // fashion
         product3.Categories.Add(categories[1]); // pajama
         seedProducts.Add(product3);
@@ -222,7 +222,7 @@ public static class DatabaseSeeder
             categories[0].Id, // fashion (Women)
             ShippingSize.Medium,
             "/products/dress.png"
-        ) { Age = null, BrandId = brandChanelId };
+        ) { Age = null, BrandId = brandChanelId, CollectionType = "Featured" };
         product5.Categories.Add(categories[0]); // fashion
         seedProducts.Add(product5);
 
@@ -257,7 +257,7 @@ public static class DatabaseSeeder
             categories[5].Id, // kids boys (Kids)
             ShippingSize.Small,
             "/products/sneaker.png"
-        ) { Age = "4-6 Years", BrandId = brandNikeId };
+        ) { Age = "4-6 Years", BrandId = brandNikeId, CollectionType = "On Sale" };
         product7.Categories.Add(categories[5]); // kids boys
         product7.Categories.Add(categories[7]); // unisex collection
         seedProducts.Add(product7);
@@ -275,7 +275,7 @@ public static class DatabaseSeeder
             categories[7].Id, // unisex collection (Kids)
             ShippingSize.Small,
             "/products/infant_dress.png"
-        ) { Age = "0-12 Months", BrandId = brandZaraId };
+        ) { Age = "0-12 Months", BrandId = brandZaraId, CollectionType = "Featured" };
         product8.Categories.Add(categories[7]); // unisex collection
         product8.Categories.Add(categories[8]); // baby needs
         seedProducts.Add(product8);
