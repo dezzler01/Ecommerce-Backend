@@ -98,29 +98,83 @@ public class OrdersController : ControllerBase
     }
 
     /// <summary>
-    /// Track order status by its Guid ID.
+    /// Track order status. Requires the last 4 digits of the registered phone number
+    /// to prevent unauthorised PII exposure via GUID enumeration.
     /// </summary>
     [HttpGet("track/{orderId:guid}")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<OrderDto>>> TrackOrder(
+    public async Task<ActionResult<ApiResponse<OrderTrackingDto>>> TrackOrder(
         Guid orderId,
+        [FromQuery] string phone,
         [FromServices] PicksAndMore.Infrastructure.Persistence.ApplicationDbContext context)
     {
+        // Require phone verification (last 4 digits)
+        if (string.IsNullOrWhiteSpace(phone) || phone.Trim().Length != 4 || !phone.Trim().All(char.IsDigit))
+        {
+            return BadRequest(ApiResponse<OrderTrackingDto>.Failure(null,
+                "Please provide the last 4 digits of the phone number used for this order."));
+        }
+
         var order = await context.Orders
             .AsNoTracking()
             .Include(o => o.Items)
                 .ThenInclude(oi => oi.Product)
             .Include(o => o.User)
-            .Include(o => o.WalletVerification)
             .FirstOrDefaultAsync(o => o.Id == orderId);
 
         if (order == null)
         {
-            return NotFound(ApiResponse<OrderDto>.Failure(null, "Order not found."));
+            // Return generic message — don't reveal whether the GUID exists
+            return NotFound(ApiResponse<OrderTrackingDto>.Failure(null,
+                "Order not found. Please check your Order ID and phone number."));
         }
 
-        var dto = PicksAndMore.Application.Mappings.MappingExtensions.ToDto(order);
-        return Ok(ApiResponse<OrderDto>.Success(dto, "Order retrieved successfully."));
+        // Verify last 4 digits of primary phone
+        var storedPhone = order.ShippingAddress.PrimaryPhone?.Trim() ?? string.Empty;
+        var last4 = storedPhone.Length >= 4 ? storedPhone[^4..] : storedPhone;
+        if (!string.Equals(last4, phone.Trim(), StringComparison.Ordinal))
+        {
+            return Unauthorized(ApiResponse<OrderTrackingDto>.Failure(null,
+                "Order not found. Please check your Order ID and phone number."));
+        }
+
+        // Map to a tracking-only DTO with masked PII
+        var dto = new OrderTrackingDto
+        {
+            OrderNumber    = $"ORD-{order.Id.ToString()[..8].ToUpper()}",
+            OrderStatus    = order.OrderStatus.ToString(),
+            PaymentMethod  = order.PaymentMethod.ToString(),
+            ShippingCost   = order.ShippingCost,
+            TotalPrice     = order.TotalPrice,
+            OrderDate      = order.OrderDate,
+            // Mask PII: show only first name initial + last name, last 4 of phone, city only
+            MaskedName     = MaskName(order.User?.FullName ?? "Guest"),
+            MaskedPhone    = MaskPhone(storedPhone),
+            City           = order.ShippingAddress.Governorate,
+            Items = order.Items.Select(i => new OrderTrackingItemDto
+            {
+                ProductTitle = i.Product?.Title ?? "Item",
+                Quantity     = i.Quantity,
+                UnitPrice    = i.UnitPrice
+            }).ToList()
+        };
+
+        return Ok(ApiResponse<OrderTrackingDto>.Success(dto, "Order retrieved successfully."));
+    }
+
+    private static string MaskName(string fullName)
+    {
+        var parts = fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "***";
+        var first = parts[0].Length > 0 ? parts[0][0] + "***" : "***";
+        var last  = parts.Length > 1 ? parts[^1] : string.Empty;
+        return string.IsNullOrEmpty(last) ? first : $"{first} {last}";
+    }
+
+    private static string MaskPhone(string phone)
+    {
+        if (phone.Length <= 4) return "****";
+        return new string('*', phone.Length - 4) + phone[^4..];
     }
 }
 
