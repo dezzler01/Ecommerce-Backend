@@ -84,6 +84,24 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
         }
 
+        // Seed default notification subscription for the admin user to receive "NewOrder" alerts
+        var adminUserId = Guid.Parse("a1b2c3d4-e5f6-47a8-b9c0-12d3e4f5a6b7");
+        var hasSubscription = await context.NotificationSubscriptions.AnyAsync(ns => ns.UserId == adminUserId && ns.NotificationType == "NewOrder");
+        if (!hasSubscription)
+        {
+            await context.NotificationSubscriptions.AddAsync(new NotificationSubscription(
+                Guid.NewGuid(),
+                adminUserId,
+                "NewOrder"
+            )
+            {
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "System"
+            });
+            await context.SaveChangesAsync();
+            Console.WriteLine("Successfully seeded NewOrder notification subscription for default Admin user.");
+        }
+
         // Clear existing product-related data to seed clean with new many-to-many categories and age fields
         context.ProductReviews.RemoveRange(context.ProductReviews);
         context.OrderItems.RemoveRange(context.OrderItems);

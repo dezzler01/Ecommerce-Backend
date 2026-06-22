@@ -36,4 +36,9 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users.AnyAsync(u => u.Email != null && u.Email.ToLower() == email.ToLower());
     }
+
+    public async Task<List<ApplicationUser>> GetAllAsync()
+    {
+        return await _context.Users.ToListAsync();
+    }
 }

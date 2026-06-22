@@ -49,6 +49,8 @@ public static class DependencyInjection
         services.AddScoped<IShippingService, ShippingService>();
         services.AddScoped<IPromoCodeRepository, PromoCodeRepository>();
         services.AddScoped<IDiscountService, DiscountService>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<INotificationSubscriptionRepository, NotificationSubscriptionRepository>();
 
         // 3. Register HTTP Context Accessor and Current User Service
         services.AddHttpContextAccessor();

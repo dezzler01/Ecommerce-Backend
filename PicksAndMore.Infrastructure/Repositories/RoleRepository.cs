@@ -38,4 +38,9 @@ public class RoleRepository : IRoleRepository
     {
         return await _context.Roles.AnyAsync(r => r.Name != null && r.Name.ToLower() == name.ToLower());
     }
+
+    public async Task<List<Role>> GetAllAsync()
+    {
+        return await _context.Roles.ToListAsync();
+    }
 }

@@ -80,6 +80,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Role, Gui
     public DbSet<ProductImage> ProductImages { get; set; }
     public DbSet<Brand> Brands { get; set; }
     public DbSet<VisitorLog> VisitorLogs { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
+    public DbSet<NotificationSubscription> NotificationSubscriptions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -372,6 +374,31 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Role, Gui
             entity.Property(v => v.Country).IsRequired().HasMaxLength(100);
             entity.Property(v => v.Governorate).IsRequired().HasMaxLength(100);
             entity.Property(v => v.Timestamp).IsRequired();
+        });
+
+        // Configure Notification Entity
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.ToTable("Notifications");
+            entity.HasKey(n => n.Id);
+            entity.Property(n => n.Title).IsRequired().HasMaxLength(200);
+            entity.Property(n => n.Message).IsRequired().HasMaxLength(1000);
+            entity.Property(n => n.Type).IsRequired().HasMaxLength(100);
+            entity.Property(n => n.IsRead).IsRequired();
+            entity.Property(n => n.RelatedEntityId).HasMaxLength(100);
+            
+            entity.HasIndex(n => n.UserId);
+            entity.HasIndex(n => n.IsRead);
+        });
+
+        // Configure NotificationSubscription Entity
+        modelBuilder.Entity<NotificationSubscription>(entity =>
+        {
+            entity.ToTable("NotificationSubscriptions");
+            entity.HasKey(ns => ns.Id);
+            entity.Property(ns => ns.NotificationType).IsRequired().HasMaxLength(100);
+            
+            entity.HasIndex(ns => new { ns.UserId, ns.NotificationType }).IsUnique();
         });
     }
 }

@@ -5,6 +5,7 @@ using PicksAndMore.Application.DTOs;
 using PicksAndMore.Application.Hubs;
 using PicksAndMore.Application.Interfaces;
 using PicksAndMore.Application.Mappings;
+using PicksAndMore.Domain.Entities;
 using PicksAndMore.Domain.Enums;
 
 namespace PicksAndMore.Application.Orders.Commands;
@@ -16,15 +17,18 @@ public class UpdateOrderStatusCommandHandler : IRequestHandler<UpdateOrderStatus
     private readonly IOrderRepository _orderRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IHubContext<NotificationHub> _hubContext;
+    private readonly INotificationRepository _notificationRepository;
 
     public UpdateOrderStatusCommandHandler(
         IOrderRepository orderRepository, 
         IUnitOfWork unitOfWork,
-        IHubContext<NotificationHub> hubContext)
+        IHubContext<NotificationHub> hubContext,
+        INotificationRepository notificationRepository)
     {
         _orderRepository = orderRepository;
         _unitOfWork = unitOfWork;
         _hubContext = hubContext;
+        _notificationRepository = notificationRepository;
     }
 
     public async Task<ApiResponse<OrderDto>> Handle(UpdateOrderStatusCommand request, CancellationToken cancellationToken)
@@ -36,7 +40,6 @@ public class UpdateOrderStatusCommandHandler : IRequestHandler<UpdateOrderStatus
         }
 
         order.UpdateStatus(request.TargetStatus);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         // Map TargetStatus to a user-friendly text token (Confirmed, Out For Delivery, Delivered)
         string statusText = request.TargetStatus switch
@@ -49,15 +52,32 @@ public class UpdateOrderStatusCommandHandler : IRequestHandler<UpdateOrderStatus
             _ => request.TargetStatus.ToString()
         };
 
-        // Route a live targeted user-specific toast notification message matching the updated lifecycle token
         var orderNumber = $"ORD-{order.Id.ToString().Substring(0, 8).ToUpper()}";
+
+        // Create persistent customer notification in DB
+        var customerNotification = new Notification(
+            Guid.NewGuid(),
+            order.UserId,
+            "Order Status Updated",
+            $"Your order {orderNumber} status has been updated to: {statusText}.",
+            "OrderStatusChanged",
+            order.Id.ToString()
+        );
+        await _notificationRepository.AddAsync(customerNotification);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Route a live targeted user-specific toast notification message matching the updated lifecycle token
         await _hubContext.Clients.User(order.UserId.ToString()).SendAsync("ReceiveNotification", new
         {
-            type = "OrderStatusChanged",
-            orderId = order.Id,
-            orderNumber = orderNumber,
-            status = statusText,
-            message = $"Your order {orderNumber} status has been updated to: {statusText}."
+            id = customerNotification.Id,
+            userId = customerNotification.UserId,
+            title = customerNotification.Title,
+            message = customerNotification.Message,
+            type = customerNotification.Type,
+            isRead = customerNotification.IsRead,
+            relatedEntityId = customerNotification.RelatedEntityId,
+            createdAt = customerNotification.CreatedAt
         }, cancellationToken);
 
         // Fetch refreshed order to map navigation properties

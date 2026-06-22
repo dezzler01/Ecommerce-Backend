@@ -23,6 +23,8 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
     private readonly ICurrentUserService _currentUserService;
     private readonly IShippingService _shippingService;
     private readonly IHubContext<NotificationHub> _hubContext;
+    private readonly INotificationRepository _notificationRepository;
+    private readonly INotificationSubscriptionRepository _subscriptionRepository;
 
     public CreateOrderCommandHandler(
         IOrderRepository orderRepository,
@@ -32,7 +34,9 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
         IShippingService shippingService,
-        IHubContext<NotificationHub> hubContext)
+        IHubContext<NotificationHub> hubContext,
+        INotificationRepository notificationRepository,
+        INotificationSubscriptionRepository subscriptionRepository)
     {
         _orderRepository = orderRepository;
         _productRepository = productRepository;
@@ -42,6 +46,8 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
         _currentUserService = currentUserService;
         _shippingService = shippingService;
         _hubContext = hubContext;
+        _notificationRepository = notificationRepository;
+        _subscriptionRepository = subscriptionRepository;
     }
 
     public async Task<ApiResponse<OrderDto>> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
@@ -202,16 +208,68 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
 
             // 12. Persist and commit transaction
             await _orderRepository.AddAsync(order);
+
+            var orderNumber = $"ORD-{order.Id.ToString().Substring(0, 8).ToUpper()}";
+
+            // Create customer notification
+            var customerNotification = new Notification(
+                Guid.NewGuid(),
+                userId,
+                "Order Placed",
+                $"Thank you! Your order {orderNumber} has been placed successfully.",
+                "OrderPlaced",
+                order.Id.ToString()
+            );
+            await _notificationRepository.AddAsync(customerNotification);
+
+            // Retrieve staff subscriptions for NewOrder notifications
+            var subscriptions = await _subscriptionRepository.GetByNotificationTypeAsync("NewOrder");
+            var adminNotificationsToSend = new List<Notification>();
+
+            foreach (var sub in subscriptions)
+            {
+                var adminNotification = new Notification(
+                    Guid.NewGuid(),
+                    sub.UserId,
+                    "New Order Submitted",
+                    $"Order {orderNumber} has been placed and requires verification.",
+                    "NewOrder",
+                    order.Id.ToString()
+                );
+                await _notificationRepository.AddAsync(adminNotification);
+                adminNotificationsToSend.Add(adminNotification);
+            }
+
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
-            // Broadcast a targeted trigger message to the Admin role group: "New Order Submitted"
-            var orderNumber = $"ORD-{order.Id.ToString().Substring(0, 8).ToUpper()}";
-            await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", new 
-            { 
-                type = "NewOrder", 
-                orderNumber = orderNumber,
-                message = "New Order Submitted" 
+            // Broadcast customer notification in real-time
+            await _hubContext.Clients.User(userId.ToString()).SendAsync("ReceiveNotification", new
+            {
+                id = customerNotification.Id,
+                userId = customerNotification.UserId,
+                title = customerNotification.Title,
+                message = customerNotification.Message,
+                type = customerNotification.Type,
+                isRead = customerNotification.IsRead,
+                relatedEntityId = customerNotification.RelatedEntityId,
+                createdAt = customerNotification.CreatedAt
             }, cancellationToken);
+
+            // Broadcast admin notifications in real-time
+            foreach (var note in adminNotificationsToSend)
+            {
+                await _hubContext.Clients.User(note.UserId.ToString()).SendAsync("ReceiveNotification", new
+                {
+                    id = note.Id,
+                    userId = note.UserId,
+                    title = note.Title,
+                    message = note.Message,
+                    type = note.Type,
+                    isRead = note.IsRead,
+                    relatedEntityId = note.RelatedEntityId,
+                    createdAt = note.CreatedAt
+                }, cancellationToken);
+            }
 
             // Load related navigation objects for mapping
             var createdOrder = await _orderRepository.GetByIdAsync(order.Id);
