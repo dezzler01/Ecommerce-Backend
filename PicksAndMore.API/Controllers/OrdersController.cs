@@ -96,6 +96,32 @@ public class OrdersController : ControllerBase
         var dtos = orders.Select(o => PicksAndMore.Application.Mappings.MappingExtensions.ToDto(o)).ToList();
         return Ok(ApiResponse<List<OrderDto>>.Success(dtos, "My orders fetched successfully."));
     }
+
+    /// <summary>
+    /// Track order status by its Guid ID.
+    /// </summary>
+    [HttpGet("track/{orderId:guid}")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<OrderDto>>> TrackOrder(
+        Guid orderId,
+        [FromServices] PicksAndMore.Infrastructure.Persistence.ApplicationDbContext context)
+    {
+        var order = await context.Orders
+            .AsNoTracking()
+            .Include(o => o.Items)
+                .ThenInclude(oi => oi.Product)
+            .Include(o => o.User)
+            .Include(o => o.WalletVerification)
+            .FirstOrDefaultAsync(o => o.Id == orderId);
+
+        if (order == null)
+        {
+            return NotFound(ApiResponse<OrderDto>.Failure(null, "Order not found."));
+        }
+
+        var dto = PicksAndMore.Application.Mappings.MappingExtensions.ToDto(order);
+        return Ok(ApiResponse<OrderDto>.Success(dto, "Order retrieved successfully."));
+    }
 }
 
 public class ValidatePromoRequest

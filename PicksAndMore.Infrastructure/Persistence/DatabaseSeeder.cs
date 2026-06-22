@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using PicksAndMore.Domain.Entities;
 using PicksAndMore.Domain.Enums;
+using PicksAndMore.Domain.ValueObjects;
 
 namespace PicksAndMore.Infrastructure.Persistence;
 
@@ -404,6 +405,36 @@ public static class DatabaseSeeder
             };
             await context.ShippingComboRules.AddRangeAsync(rules);
             await context.SaveChangesAsync();
+        }
+
+        // 11. Seed a Test Order for active logistics tracking demonstration
+        if (!await context.Orders.AnyAsync(o => o.Id == Guid.Parse("11111111-2222-3333-4444-555555555555")))
+        {
+            var adminUserForOrder = await context.Users.FirstOrDefaultAsync(u => u.Email == "admin@picksandmore.com");
+            if (adminUserForOrder != null)
+            {
+                var testOrder = new Order(
+                    Guid.Parse("11111111-2222-3333-4444-555555555555"),
+                    adminUserForOrder.Id,
+                    DateTime.UtcNow.AddHours(-2),
+                    1735.00m,
+                    35.00m,
+                    OrderStatus.ConfirmedPreparing,
+                    PaymentMethod.COD,
+                    new Address(
+                        "Cairo",
+                        "12 Luxury Boulevard, Fifth Settlement, New Cairo",
+                        "01002345678"
+                    )
+                );
+                testOrder.AddOrderItem(Guid.Parse("d3b07384-d113-40e1-a3f2-861f2113d077"), 2, 850.00m); // Sculpted Leather Handbag
+                testOrder.CreatedAt = DateTime.UtcNow;
+                testOrder.CreatedBy = "System";
+
+                await context.Orders.AddAsync(testOrder);
+                await context.SaveChangesAsync();
+                Console.WriteLine("Successfully seeded test order 11111111-2222-3333-4444-555555555555 for tracking.");
+            }
         }
 
         // Ensure Analytics:Read permission is seeded for Admin role
