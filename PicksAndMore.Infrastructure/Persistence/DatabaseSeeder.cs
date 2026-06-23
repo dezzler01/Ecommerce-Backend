@@ -464,5 +464,59 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
             Console.WriteLine("Retroactively seeded Analytics:Read permission for Admin role.");
         }
+
+        // Seed default ColorOptions
+        if (!await context.ColorOptions.AnyAsync())
+        {
+            var colors = new List<ColorOption>
+            {
+                new ColorOption(Guid.NewGuid(), "Tan", "#C49E7A"),
+                new ColorOption(Guid.NewGuid(), "Black", "#1F1B1A"),
+                new ColorOption(Guid.NewGuid(), "Gold", "#D4AF37"),
+                new ColorOption(Guid.NewGuid(), "Silver", "#B0B5BC"),
+                new ColorOption(Guid.NewGuid(), "Champagne", "#F1E5D7"),
+                new ColorOption(Guid.NewGuid(), "Emerald", "#3B7A57"),
+                new ColorOption(Guid.NewGuid(), "Oatmeal", "#E3DFD5"),
+                new ColorOption(Guid.NewGuid(), "Charcoal", "#434A54"),
+                new ColorOption(Guid.NewGuid(), "Blush", "#ECC8BF"),
+                new ColorOption(Guid.NewGuid(), "Ivory", "#FDFBF7"),
+                new ColorOption(Guid.NewGuid(), "Taupe", "#8C857B"),
+                new ColorOption(Guid.NewGuid(), "Sage", "#9EB0A2"),
+                new ColorOption(Guid.NewGuid(), "Blue", "#7F9BB0"),
+                new ColorOption(Guid.NewGuid(), "White", "#FFFFFF")
+            };
+            await context.ColorOptions.AddRangeAsync(colors);
+            await context.SaveChangesAsync();
+            Console.WriteLine("Successfully seeded default ColorOptions.");
+        }
+
+        // Seed default SizeOptions
+        if (!await context.SizeOptions.AnyAsync())
+        {
+            var sizes = new List<SizeOption>();
+            var womenSizes = new[] { "One Size", "XS", "S", "M", "L", "XL", "XXL", "37", "38", "39", "40", "41" };
+            for (int i = 0; i < womenSizes.Length; i++)
+            {
+                sizes.Add(new SizeOption(Guid.NewGuid(), womenSizes[i], "Women", i));
+            }
+
+            var kidsSizes = new[]
+            {
+                "3-6 Months (62-68cm)", "6-9 Months (68-74cm)", "9-12 Months (74-80cm)", "12-18 Months (80-86cm)", 
+                "1.5-2 Years (86-92cm)", "2-3 Years (92-98cm)", "3-4 Years (98-104cm)", "4-5 Years (104-110cm)", 
+                "5-6 Years (110-116cm)", "6-7 Years (116-122cm)", 
+                "EU 19", "EU 20.5", "EU 21.5", "EU 23", "EU 24", 
+                "EU 25.5", "EU 26.5", "EU 28", "EU 29", "EU 30.5", 
+                "EU 32", "EU 33", "EU 34.5", "EU 35.5"
+            };
+            for (int i = 0; i < kidsSizes.Length; i++)
+            {
+                sizes.Add(new SizeOption(Guid.NewGuid(), kidsSizes[i], "Kids", i));
+            }
+
+            await context.SizeOptions.AddRangeAsync(sizes);
+            await context.SaveChangesAsync();
+            Console.WriteLine("Successfully seeded default SizeOptions.");
+        }
     }
 }

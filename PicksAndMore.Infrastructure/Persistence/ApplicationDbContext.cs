@@ -82,10 +82,33 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Role, Gui
     public DbSet<VisitorLog> VisitorLogs { get; set; }
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<NotificationSubscription> NotificationSubscriptions { get; set; }
+    public DbSet<ColorOption> ColorOptions { get; set; }
+    public DbSet<SizeOption> SizeOptions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Configure ColorOption Entity
+        modelBuilder.Entity<ColorOption>(entity =>
+        {
+            entity.ToTable("ColorOptions");
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.Name).IsRequired().HasMaxLength(100);
+            entity.Property(c => c.HexCode).IsRequired().HasMaxLength(50);
+            entity.HasIndex(c => c.Name).IsUnique();
+        });
+
+        // Configure SizeOption Entity
+        modelBuilder.Entity<SizeOption>(entity =>
+        {
+            entity.ToTable("SizeOptions");
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.Name).IsRequired().HasMaxLength(50);
+            entity.Property(s => s.TargetAudience).IsRequired().HasMaxLength(50);
+            entity.Property(s => s.SortOrder).IsRequired();
+            entity.HasIndex(s => new { s.Name, s.TargetAudience }).IsUnique();
+        });
 
         // Configure ASP.NET Identity Entities Custom properties
         modelBuilder.Entity<ApplicationUser>(entity =>
