@@ -126,7 +126,8 @@ public static class DatabaseSeeder
             new Category(Guid.Parse("77777777-7777-7777-7777-777777777777"), "girls", "Kids", true),
             new Category(Guid.Parse("88888888-8888-8888-8888-888888888888"), "unisex collection", "Kids", true),
             new Category(Guid.Parse("99999999-9999-9999-9999-999999999999"), "baby needs", "Kids", true),
-            new Category(Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), "accessors", "Kids", true)
+            new Category(Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), "accessors", "Kids", true),
+            new Category(Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"), "shoes", "Kids", true)
         };
 
         await context.Categories.AddRangeAsync(categories);
@@ -273,10 +274,11 @@ public static class DatabaseSeeder
             50,
             true,
             null,
-            categories[5].Id, // kids boys (Kids)
+            categories[10].Id, // shoes (Kids)
             ShippingSize.Small,
             "/products/sneaker.png"
         ) { Age = "4-6 Years", BrandId = brandNikeId, CollectionType = "On Sale" };
+        product7.Categories.Add(categories[10]); // shoes
         product7.Categories.Add(categories[5]); // kids boys
         product7.Categories.Add(categories[7]); // unisex collection
         seedProducts.Add(product7);
