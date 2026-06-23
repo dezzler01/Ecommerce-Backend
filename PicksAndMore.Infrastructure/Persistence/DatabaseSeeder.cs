@@ -102,18 +102,10 @@ public static class DatabaseSeeder
             Console.WriteLine("Successfully seeded NewOrder notification subscription for default Admin user.");
         }
 
-        // Clear existing product-related data to seed clean with new many-to-many categories and age fields
-        context.ProductReviews.RemoveRange(context.ProductReviews);
-        context.OrderItems.RemoveRange(context.OrderItems);
-        context.Orders.RemoveRange(context.Orders);
-        context.ProductImages.RemoveRange(context.ProductImages);
-        context.ProductMetadata.RemoveRange(context.ProductMetadata);
-        context.Products.RemoveRange(context.Products);
-        context.Categories.RemoveRange(context.Categories);
-        await context.SaveChangesAsync();
-
         // 4. Seed Categories (Subcategories)
-        var categories = new List<Category>
+        if (!await context.Products.AnyAsync() && !await context.Categories.AnyAsync())
+        {
+            var categories = new List<Category>
         {
             // Women subcategories
             new Category(Guid.Parse("11111111-1111-1111-1111-111111111111"), "fashion", "Women", true),
@@ -371,6 +363,7 @@ public static class DatabaseSeeder
             await context.ProductReviews.AddRangeAsync(seedReviews);
             await context.SaveChangesAsync();
         }
+        }
 
         // 9. Seed Shipping Matrices (all 27 Egypt Governorates)
         if (!await context.ShippingMatrices.AnyAsync())
@@ -496,25 +489,47 @@ public static class DatabaseSeeder
         if (!await context.SizeOptions.AnyAsync())
         {
             var sizes = new List<SizeOption>();
-            var womenSizes = new[] { "One Size", "XS", "S", "M", "L", "XL", "XXL", "37", "38", "39", "40", "41" };
-            for (int i = 0; i < womenSizes.Length; i++)
+
+            // Women clothing sizes
+            var womenClothing = new[] { "XS", "S", "M", "L", "XL", "XXL" };
+            for (int i = 0; i < womenClothing.Length; i++)
             {
-                sizes.Add(new SizeOption(Guid.NewGuid(), womenSizes[i], "Women", i));
+                sizes.Add(new SizeOption(Guid.NewGuid(), womenClothing[i], "Women", i, "Women Clothing"));
             }
 
-            var kidsSizes = new[]
+            // Women shoe sizes
+            var womenShoes = new[] { "37", "38", "39", "40", "41" };
+            for (int i = 0; i < womenShoes.Length; i++)
+            {
+                sizes.Add(new SizeOption(Guid.NewGuid(), womenShoes[i], "Women", i, "Women Shoes"));
+            }
+
+            // Kids clothing sizes
+            var kidsClothing = new[]
             {
                 "3-6 Months (62-68cm)", "6-9 Months (68-74cm)", "9-12 Months (74-80cm)", "12-18 Months (80-86cm)", 
                 "1.5-2 Years (86-92cm)", "2-3 Years (92-98cm)", "3-4 Years (98-104cm)", "4-5 Years (104-110cm)", 
-                "5-6 Years (110-116cm)", "6-7 Years (116-122cm)", 
+                "5-6 Years (110-116cm)", "6-7 Years (116-122cm)"
+            };
+            for (int i = 0; i < kidsClothing.Length; i++)
+            {
+                sizes.Add(new SizeOption(Guid.NewGuid(), kidsClothing[i], "Kids", i, "Kids Clothing"));
+            }
+
+            // Kids shoe sizes
+            var kidsShoes = new[]
+            {
                 "EU 19", "EU 20.5", "EU 21.5", "EU 23", "EU 24", 
                 "EU 25.5", "EU 26.5", "EU 28", "EU 29", "EU 30.5", 
                 "EU 32", "EU 33", "EU 34.5", "EU 35.5"
             };
-            for (int i = 0; i < kidsSizes.Length; i++)
+            for (int i = 0; i < kidsShoes.Length; i++)
             {
-                sizes.Add(new SizeOption(Guid.NewGuid(), kidsSizes[i], "Kids", i));
+                sizes.Add(new SizeOption(Guid.NewGuid(), kidsShoes[i], "Kids", i, "Kids Shoes"));
             }
+
+            // Universal/One Size
+            sizes.Add(new SizeOption(Guid.NewGuid(), "One Size", "Both", 0, "Universal"));
 
             await context.SizeOptions.AddRangeAsync(sizes);
             await context.SaveChangesAsync();

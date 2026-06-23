@@ -115,8 +115,9 @@ public class ProductAttributesController : ControllerBase
             return BadRequest(ApiResponse<SizeOption>.Failure(null, "Size name is required."));
         
         var targetAudience = string.IsNullOrWhiteSpace(dto.TargetAudience) ? "Both" : dto.TargetAudience.Trim();
+        var categoryType = string.IsNullOrWhiteSpace(dto.CategoryType) ? "Women Clothing" : dto.CategoryType.Trim();
 
-        var size = new SizeOption(Guid.NewGuid(), dto.Name.Trim(), targetAudience, dto.SortOrder);
+        var size = new SizeOption(Guid.NewGuid(), dto.Name.Trim(), targetAudience, dto.SortOrder, categoryType);
         await _sizeRepository.AddAsync(size);
         await _unitOfWork.SaveChangesAsync();
 
@@ -136,10 +137,12 @@ public class ProductAttributesController : ControllerBase
             return BadRequest(ApiResponse<SizeOption>.Failure(null, "Size name is required."));
 
         var targetAudience = string.IsNullOrWhiteSpace(dto.TargetAudience) ? "Both" : dto.TargetAudience.Trim();
+        var categoryType = string.IsNullOrWhiteSpace(dto.CategoryType) ? "Women Clothing" : dto.CategoryType.Trim();
 
         size.Name = dto.Name.Trim();
         size.TargetAudience = targetAudience;
         size.SortOrder = dto.SortOrder;
+        size.CategoryType = categoryType;
 
         await _unitOfWork.SaveChangesAsync();
         return Ok(ApiResponse<SizeOption>.Success(size, "Size updated successfully."));
@@ -174,4 +177,5 @@ public class CreateSizeDto
     public string Name { get; set; } = null!;
     public string TargetAudience { get; set; } = "Both";
     public int SortOrder { get; set; }
+    public string CategoryType { get; set; } = "Women Clothing";
 }
