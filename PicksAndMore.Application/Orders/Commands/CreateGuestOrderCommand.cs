@@ -130,7 +130,8 @@ public class CreateGuestOrderCommandHandler : IRequestHandler<CreateGuestOrderCo
         }
 
         // --- 4. Validate Digital Wallet parameters if chosen ---
-        if (paymentMethod == PaymentMethod.DigitalWallet)
+        var isDigitalPayment = paymentMethod == PaymentMethod.DigitalWallet || paymentMethod == PaymentMethod.InstaPay || paymentMethod == PaymentMethod.VodafoneCash;
+        if (isDigitalPayment)
         {
             if (string.IsNullOrWhiteSpace(dto.WalletScreenshotUrl))
                 return ApiResponse<OrderDto>.Failure(null, "Screenshot upload is required for Digital Wallet payments.");
@@ -175,7 +176,7 @@ public class CreateGuestOrderCommandHandler : IRequestHandler<CreateGuestOrderCo
 
         try
         {
-            var orderStatus = paymentMethod == PaymentMethod.DigitalWallet
+            var orderStatus = isDigitalPayment
                 ? OrderStatus.PendingVerification
                 : OrderStatus.ConfirmedPreparing;
 
@@ -223,7 +224,7 @@ public class CreateGuestOrderCommandHandler : IRequestHandler<CreateGuestOrderCo
             }
 
             // --- 11. Attach Digital Wallet Verification if applicable ---
-            if (paymentMethod == PaymentMethod.DigitalWallet)
+            if (isDigitalPayment)
             {
                 var verification = new DigitalWalletVerification(
                     Guid.NewGuid(),

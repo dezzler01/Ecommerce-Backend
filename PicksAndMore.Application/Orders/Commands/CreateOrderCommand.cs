@@ -86,7 +86,8 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
         }
 
         // 4. Validate Digital Wallet parameters if chosen
-        if (paymentMethod == PaymentMethod.DigitalWallet)
+        var isDigitalPayment = paymentMethod == PaymentMethod.DigitalWallet || paymentMethod == PaymentMethod.InstaPay || paymentMethod == PaymentMethod.VodafoneCash;
+        if (isDigitalPayment)
         {
             if (string.IsNullOrWhiteSpace(dto.WalletScreenshotUrl))
             {
@@ -138,7 +139,7 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
         try
         {
             // Set initial order status
-            var orderStatus = paymentMethod == PaymentMethod.DigitalWallet 
+            var orderStatus = isDigitalPayment 
                 ? OrderStatus.PendingVerification 
                 : OrderStatus.ConfirmedPreparing;
 
@@ -193,7 +194,7 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
             }
 
             // 11. Save Digital Wallet Verification details if applicable
-            if (paymentMethod == PaymentMethod.DigitalWallet)
+            if (isDigitalPayment)
             {
                 var verification = new DigitalWalletVerification(
                     Guid.NewGuid(),

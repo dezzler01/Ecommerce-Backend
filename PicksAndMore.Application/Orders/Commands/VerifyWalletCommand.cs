@@ -43,7 +43,7 @@ public class VerifyWalletCommandHandler : IRequestHandler<VerifyWalletCommand, A
                 return ApiResponse<OrderDto>.Failure(null, "Order not found.");
             }
 
-            if (order.PaymentMethod != PaymentMethod.DigitalWallet || order.WalletVerification == null)
+            if (order.PaymentMethod == PaymentMethod.COD || order.WalletVerification == null)
             {
                 await _unitOfWork.RollbackTransactionAsync(cancellationToken);
                 return ApiResponse<OrderDto>.Failure(null, "Order does not require digital wallet verification.");

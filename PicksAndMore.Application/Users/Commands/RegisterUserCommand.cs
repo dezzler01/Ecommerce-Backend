@@ -45,26 +45,8 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, A
             return ApiResponse<Guid>.Failure(null, "Please enter a valid email address.");
         }
 
-        // 3. Duplicate Email check
-        var emailExists = await _userRepository.EmailExistsAsync(dto.Email);
-        if (emailExists)
-        {
-            return ApiResponse<Guid>.Failure(null, "Email already registered");
-        }
-
-        // 4. Password Strength Validation
-        if (string.IsNullOrWhiteSpace(dto.Password) || 
-            dto.Password.Length < 8 || 
-            !dto.Password.Any(char.IsUpper) || 
-            !dto.Password.Any(char.IsDigit) || 
-            !dto.Password.Any(c => !char.IsLetterOrDigit(c)))
-        {
-            return ApiResponse<Guid>.Failure(null, "Password must be at least 8 characters with a capital letter, a number, and a special character.");
-        }
-
-        // 5. Role Mapping & Fallback creation
+        // 3. Resolve Role Mapping
         var targetRoleId = dto.RoleId;
-        // Admin role mapping check (if ADMIN_ROLE_ID a3b07384-d113-40e1-a3f2-861f2113d077 is passed)
         if (targetRoleId == Guid.Parse("a3b07384-d113-40e1-a3f2-861f2113d077"))
         {
             targetRoleId = Guid.Parse("a5e2f7b4-3c82-411a-85d1-12c8a2bbdd01"); // backend admin role
@@ -81,12 +63,78 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, A
             }
         }
 
+        // 4. Duplicate Phone & Guest Upgrade Check
+        if (!string.IsNullOrWhiteSpace(dto.PhoneNumber))
+        {
+            var existingUser = await _userRepository.GetByPhoneAsync(dto.PhoneNumber.Trim());
+            if (existingUser != null)
+            {
+                if (existingUser.IsGuest)
+                {
+                    // Email duplicate check for other accounts
+                    var emailUser = await _userRepository.GetByEmailAsync(dto.Email);
+                    if (emailUser != null && emailUser.Id != existingUser.Id)
+                    {
+                        return ApiResponse<Guid>.Failure(null, "Email is already in use by another account.");
+                    }
+
+                    // Password Strength Validation
+                    if (string.IsNullOrWhiteSpace(dto.Password) || 
+                        dto.Password.Length < 8 || 
+                        !dto.Password.Any(char.IsUpper) || 
+                        !dto.Password.Any(char.IsDigit) || 
+                        !dto.Password.Any(c => !char.IsLetterOrDigit(c)))
+                    {
+                        return ApiResponse<Guid>.Failure(null, "Password must be at least 8 characters with a capital letter, a number, and a special character.");
+                    }
+
+                    // Upgrade guest to full customer account
+                    existingUser.FullName = dto.FullName;
+                    existingUser.Email = dto.Email;
+                    existingUser.NormalizedEmail = dto.Email.ToUpperInvariant();
+                    existingUser.UserName = dto.Email;
+                    existingUser.NormalizedUserName = dto.Email.ToUpperInvariant();
+                    existingUser.IsGuest = false;
+                    existingUser.RoleId = targetRoleId;
+                    existingUser.PasswordHash = _passwordHasher.HashPassword(existingUser, dto.Password);
+
+                    await _unitOfWork.SaveChangesAsync();
+                    return ApiResponse<Guid>.Success(existingUser.Id, "Guest account successfully upgraded to registered account.");
+                }
+                else
+                {
+                    return ApiResponse<Guid>.Failure(null, "Phone number is already registered to an existing account.");
+                }
+            }
+        }
+
+        // 5. Normal Duplicate Email check
+        var emailExists = await _userRepository.EmailExistsAsync(dto.Email);
+        if (emailExists)
+        {
+            return ApiResponse<Guid>.Failure(null, "Email already registered");
+        }
+
+        // 6. Password Strength Validation
+        if (string.IsNullOrWhiteSpace(dto.Password) || 
+            dto.Password.Length < 8 || 
+            !dto.Password.Any(char.IsUpper) || 
+            !dto.Password.Any(char.IsDigit) || 
+            !dto.Password.Any(c => !char.IsLetterOrDigit(c)))
+        {
+            return ApiResponse<Guid>.Failure(null, "Password must be at least 8 characters with a capital letter, a number, and a special character.");
+        }
+
         var userId = Guid.NewGuid();
         
         var tempUser = new ApplicationUser(userId, dto.FullName, dto.Email, string.Empty, targetRoleId);
         var passwordHash = _passwordHasher.HashPassword(tempUser, dto.Password);
         
         var user = new ApplicationUser(userId, dto.FullName, dto.Email, passwordHash, targetRoleId);
+        if (!string.IsNullOrWhiteSpace(dto.PhoneNumber))
+        {
+            user.PhoneNumber = dto.PhoneNumber.Trim();
+        }
 
         await _userRepository.AddAsync(user);
         await _unitOfWork.SaveChangesAsync();

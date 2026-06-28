@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -328,6 +328,57 @@ td.mono{{font-family:'Courier New',monospace;font-size:13px;font-weight:600}}
         }
     }
 
+    [HttpGet("payment-settings")]
+    [AllowAnonymous]
+    public ActionResult<ApiResponse<PaymentSettingsDto>> GetPaymentSettings()
+    {
+        var address = "picksandmore@instapay";
+        var number = "01001234567";
+
+        try
+        {
+            var settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "payment-settings.json");
+            if (System.IO.File.Exists(settingsPath))
+            {
+                var json = System.IO.File.ReadAllText(settingsPath);
+                var settings = System.Text.Json.JsonSerializer.Deserialize<PaymentSettingsDto>(json);
+                if (settings != null)
+                {
+                    address = settings.InstaPayAddress;
+                    number = settings.VodafoneCashNumber;
+                }
+            }
+        }
+        catch
+        {
+            // Fallback to default values
+        }
+
+        return Ok(ApiResponse<PaymentSettingsDto>.Success(new PaymentSettingsDto
+        {
+            InstaPayAddress = address,
+            VodafoneCashNumber = number
+        }, "Payment settings retrieved successfully."));
+    }
+
+    [HttpPost("payment-settings")]
+    [HasPermission("Shipping:Update")]
+    public ActionResult<ApiResponse<PaymentSettingsDto>> UpdatePaymentSettings([FromBody] PaymentSettingsDto dto)
+    {
+        try
+        {
+            var settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "payment-settings.json");
+            var json = System.Text.Json.JsonSerializer.Serialize(dto, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            System.IO.File.WriteAllText(settingsPath, json);
+            return Ok(ApiResponse<PaymentSettingsDto>.Success(dto, "Payment settings updated successfully."));
+        }
+        catch (System.Exception ex)
+        {
+            return BadRequest(ApiResponse<PaymentSettingsDto>.Failure(null, $"Failed to update payment settings: {ex.Message}"));
+        }
+    }
+
+
     [HttpGet("promocodes")]
     [HasPermission("PromoCodes:Read")]
     public async Task<ActionResult<ApiResponse<List<PromoCode>>>> GetPromoCodes([FromServices] ApplicationDbContext context)
@@ -563,4 +614,10 @@ public class AssignPermissionsRequestDto
 {
     public Guid RoleId { get; set; }
     public List<string> Permissions { get; set; } = new();
+}
+
+public class PaymentSettingsDto
+{
+    public string InstaPayAddress { get; set; } = "picksandmore@instapay";
+    public string VodafoneCashNumber { get; set; } = "01001234567";
 }
