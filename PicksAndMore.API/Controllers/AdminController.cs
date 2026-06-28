@@ -333,6 +333,7 @@ td.mono{{font-family:'Courier New',monospace;font-size:13px;font-weight:600}}
     public ActionResult<ApiResponse<PaymentSettingsDto>> GetPaymentSettings()
     {
         var address = "picksandmore@instapay";
+        var phone = "";
         var number = "01001234567";
 
         try
@@ -345,6 +346,7 @@ td.mono{{font-family:'Courier New',monospace;font-size:13px;font-weight:600}}
                 if (settings != null)
                 {
                     address = settings.InstaPayAddress;
+                    phone = settings.InstaPayPhone;
                     number = settings.VodafoneCashNumber;
                 }
             }
@@ -357,6 +359,7 @@ td.mono{{font-family:'Courier New',monospace;font-size:13px;font-weight:600}}
         return Ok(ApiResponse<PaymentSettingsDto>.Success(new PaymentSettingsDto
         {
             InstaPayAddress = address,
+            InstaPayPhone = phone,
             VodafoneCashNumber = number
         }, "Payment settings retrieved successfully."));
     }
@@ -619,5 +622,6 @@ public class AssignPermissionsRequestDto
 public class PaymentSettingsDto
 {
     public string InstaPayAddress { get; set; } = "picksandmore@instapay";
+    public string InstaPayPhone { get; set; } = "";
     public string VodafoneCashNumber { get; set; } = "01001234567";
 }
